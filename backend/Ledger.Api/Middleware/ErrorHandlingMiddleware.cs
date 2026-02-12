@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Ledger.Application.Common;
 using Ledger.Domain.Common;
 using Microsoft.AspNetCore.Mvc;
@@ -19,47 +20,55 @@ public sealed class ErrorHandlingMiddleware : IMiddleware
         {
             await next(context);
         }
-        catch (DomainException ex)
+        catch (Exception ex) when (!context.Response.HasStarted)
         {
-            // Domain validation error (business rule)
-            context.Response.StatusCode = StatusCodes.Status400BadRequest;
-            await WriteProblemAsync(context, StatusCodes.Status400BadRequest, ex.Message);
-        }
-        catch (AppException ex)
-        {
-            // Application-level error (e.g., not found, invalid request)
-            context.Response.StatusCode = StatusCodes.Status400BadRequest;
-            await WriteProblemAsync(context, StatusCodes.Status400BadRequest, ex.Message);
+            context.Response.Clear();
+
+            var (status, title, detail) = ex switch
+            {
+                DomainException de => (StatusCodes.Status400BadRequest, "Bad Request", de.Message),
+
+                // Optional: return 404 for "not found" messages until you introduce NotFoundException
+                AppException ae when ae.Message.Contains("not found", StringComparison.OrdinalIgnoreCase)
+                    => (StatusCodes.Status404NotFound, "Not Found", ae.Message),
+
+                AppException ae => (StatusCodes.Status400BadRequest, "Bad Request", ae.Message),
+
+                _ => (StatusCodes.Status500InternalServerError, "Internal Server Error", "Unexpected error occurred.")
+            };
+
+            if (status == StatusCodes.Status500InternalServerError)
+                _logger.LogError(ex, "Unhandled exception");
+            else
+                _logger.LogWarning(ex, "Request failed: {Message}", ex.Message);
+
+            await WriteProblemAsync(context, status, title, detail);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unhandled exception");
-
-            context.Response.StatusCode = StatusCodes.Status500InternalServerError;
-            await WriteProblemAsync(
-                context,
-                StatusCodes.Status500InternalServerError,
-                "Unexpected error occurred."
-            );
+            // Response already started; we can only log and rethrow
+            _logger.LogWarning(ex, "Response already started, cannot write error response");
+            throw;
         }
     }
 
-    private static async Task WriteProblemAsync(HttpContext context, int statusCode, string message)
+    private static Task WriteProblemAsync(HttpContext context, int statusCode, string title, string detail)
     {
+        context.Response.StatusCode = statusCode;
         context.Response.ContentType = "application/problem+json";
+
+        var traceId = Activity.Current?.Id ?? context.TraceIdentifier;
 
         var problem = new ProblemDetails
         {
             Status = statusCode,
-            Title = statusCode switch
-            {
-                StatusCodes.Status400BadRequest => "Bad Request",
-                StatusCodes.Status500InternalServerError => "Internal Server Error",
-                _ => "Error"
-            },
-            Detail = message
+            Title = title,
+            Detail = detail,
+            Instance = context.Request.Path
         };
 
-        await context.Response.WriteAsJsonAsync(problem);
+        problem.Extensions["traceId"] = traceId;
+
+        return context.Response.WriteAsJsonAsync(problem);
     }
 }
