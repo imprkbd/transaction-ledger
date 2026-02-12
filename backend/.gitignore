@@ -1,0 +1,34 @@
+# Build output
+bin/
+obj/
+bin\\Debug/
+
+# Visual Studio / Rider
+.vs/
+.idea/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Logs
+logs/
+*.log
+
+# SQLite database files
+*.db
+*.db-shm
+*.db-wal
+
+# Test Results
+TestResults/
+*.trx
+coverage/
+coverage.xml
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Docker
+.dockerignore
