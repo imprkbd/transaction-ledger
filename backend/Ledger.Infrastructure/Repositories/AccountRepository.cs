@@ -28,6 +28,13 @@ public sealed class AccountRepository : IAccountRepository
             .OrderByDescending(a => a.CreatedAtUtc)
             .ToListAsync(ct);
 
+    public Task RemoveAsync(Account account, CancellationToken ct)
+    {
+        _db.Accounts.Remove(account);
+        return Task.CompletedTask;
+    }
+
+
     public Task SaveChangesAsync(CancellationToken ct)
         => _db.SaveChangesAsync(ct);
 }
