@@ -38,7 +38,21 @@ public sealed class Account
 
     public LedgerEntry AddEntry(EntryType type, decimal amount, string? description)
     {
-        var entry = LedgerEntry.Create(Id, type, amount, description);
+        // validate amount using Money
+        var money = Money.From(amount);
+
+        // enforce "no overdraft" rule
+        if(type == EntryType.Debit)
+        {
+            var currentBalance = GetBalance(); // sum of existing entries
+
+            if(currentBalance < money.Value)
+            {
+                throw new DomainException("Insufficient funds: debit amount exceeds current balance.");
+            }
+        }
+
+        var entry = LedgerEntry.Create(Id, type, money.Value, description);
         _entries.Add(entry);
         return entry;
     }
