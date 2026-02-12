@@ -1,16 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
-import {
-  useAccounts,
-  useCreateAccount,
-  useUpdateAccount,
-  useDeleteAccount,
-} from "../features/accounts/accounts.queries";
+import { useAccounts } from "../features/accounts/accounts.queries";
 import { getApiErrorMessage } from "../lib/apiError";
 import {
   Building2,
-  Phone,
-  Hash,
   Users,
   Loader2,
   AlertCircle,
@@ -30,6 +23,11 @@ export default function AccountsPage() {
   const [selectedAccount, setSelectedAccount] = useState(null);
 
   const { data, isLoading, isError, error } = useAccounts();
+  const errorMsg = isError ? getApiErrorMessage(error) : null;
+
+  useEffect(() => {
+    if (errorMsg) toast.error(errorMsg);
+  }, [errorMsg]);
 
   const handleEditClick = (account) => {
     setSelectedAccount(account);
@@ -58,8 +56,7 @@ export default function AccountsPage() {
   }
 
   if (isError) {
-    const msg = getApiErrorMessage(error);
-    toast.error(msg);
+    const msg = errorMsg;
     return (
       <div className="flex flex-col items-center justify-center rounded-xl border border-red-100 bg-red-50 p-12">
         <div className="rounded-full bg-red-100 p-3">

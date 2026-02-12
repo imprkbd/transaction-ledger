@@ -12,7 +12,6 @@ export default function CreateAccountModal({ open, onClose }) {
     handleSubmit,
     formState: { errors },
     reset,
-    setError,
   } = useForm({
     defaultValues: {
       customerName: "",
@@ -22,11 +21,6 @@ export default function CreateAccountModal({ open, onClose }) {
   });
 
   async function onSubmit(values) {
-    if (!values.customerName.trim()) {
-      setError("customerName", { message: "Customer name is required" });
-      return;
-    }
-
     try {
       await createMutation.mutateAsync({
         customerName: values.customerName.trim(),
@@ -49,7 +43,10 @@ export default function CreateAccountModal({ open, onClose }) {
             Customer Name <span className="text-red-500">*</span>
           </label>
           <input
-            {...register("customerName")}
+            {...register("customerName", {
+              validate: (value) =>
+                value.trim().length > 0 || "Customer name is required",
+            })}
             className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
             placeholder="Enter customer name"
           />

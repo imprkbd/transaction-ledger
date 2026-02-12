@@ -8,6 +8,7 @@ export default function DeleteAccountModal({ open, onClose, account }) {
   const deleteMutation = useDeleteAccount();
 
   async function handleDelete() {
+    if (!account?.id) return;
     try {
       await deleteMutation.mutateAsync(account.id);
       toast.success("Account deleted");
@@ -57,7 +58,7 @@ export default function DeleteAccountModal({ open, onClose, account }) {
           </button>
           <button
             onClick={handleDelete}
-            disabled={deleteMutation.isPending}
+            disabled={!account || deleteMutation.isPending}
             className="rounded-lg bg-red-600 px-4 py-2 text-sm text-white hover:bg-red-700 disabled:opacity-50"
           >
             {deleteMutation.isPending ? "Deleting..." : "Delete"}
