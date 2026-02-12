@@ -7,4 +7,5 @@ public interface ILedgerEntryRepository
 {
     Task AddAsync(LedgerEntry entry, CancellationToken ct);
     Task<List<LedgerEntry>> GetByAccountIdAsync(AccountId accountId, CancellationToken ct);
+    Task SaveChangesAsync(CancellationToken ct);
 }

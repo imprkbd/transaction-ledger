@@ -24,4 +24,7 @@ public sealed class LedgerEntryRepository : ILedgerEntryRepository
             .Where(e => e.AccountId == accountId)
             .OrderByDescending(e => e.CreatedAtUtc)
             .ToListAsync(ct);
+
+    public Task SaveChangesAsync(CancellationToken ct)
+     => _db.SaveChangesAsync(ct);
 }
