@@ -31,7 +31,7 @@ export default function AppLayout() {
               </NavLink>
             </Tooltip>
 
-            <Tooltip content="Ledger" position="bottom">
+            {/* <Tooltip content="Ledger" position="bottom">
               <NavLink
                 to="/ledger"
                 className={({ isActive }) =>
@@ -45,7 +45,7 @@ export default function AppLayout() {
                 <BookOpen className="h-4 w-4" />
                 <span>Ledger</span>
               </NavLink>
-            </Tooltip>
+            </Tooltip> */}
           </nav>
         </div>
       </header>

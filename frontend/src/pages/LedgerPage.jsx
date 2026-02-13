@@ -1,4 +1,4 @@
-import { useParams, useLocation } from "react-router-dom";
+import { useParams, useLocation, Navigate, replace } from "react-router-dom";
 import LedgerView from "../features/ledger/LedgerView";
 import { useAccounts } from "../features/accounts/accounts.queries";
 
@@ -9,6 +9,10 @@ export default function LedgerPage() {
 
   const account = accounts?.find((acc) => acc.id === accountId);
   const accountName = account?.customerName || location.state?.accountName;
+
+  if (!accountId) {
+    return <Navigate to={"/accounts"} replace />;
+  }
 
   return (
     <div className="py-6">

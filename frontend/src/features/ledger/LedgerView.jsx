@@ -23,6 +23,7 @@ const ENTRY_TYPES = [
     icon: ArrowUpCircle,
     color: "text-green-600",
     bgColor: "bg-green-50",
+    borderColor: "border-green-200",
   },
   {
     label: "Debit",
@@ -30,6 +31,7 @@ const ENTRY_TYPES = [
     icon: ArrowDownCircle,
     color: "text-red-600",
     bgColor: "bg-red-50",
+    borderColor: "border-red-200",
   },
 ];
 
@@ -232,7 +234,7 @@ export default function LedgerView({ accountId, accountName }) {
                           onClick={() => setType(t.value)}
                           className={`flex flex-1 items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-all ${
                             isSelected
-                              ? `${t.bgColor} border-${t.value === 2 ? "green" : "red"}-200 ${t.color}`
+                              ? `${t.bgColor} ${t.borderColor} ${t.color}`
                               : "border-slate-200 text-slate-600 hover:bg-slate-50"
                           }`}
                         >
