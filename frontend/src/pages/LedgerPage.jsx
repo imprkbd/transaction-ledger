@@ -1,5 +1,18 @@
-const LedgerPage = () => {
-  return <div>LedgerPage</div>;
-};
+import { useParams, useLocation } from "react-router-dom";
+import LedgerView from "../features/ledger/LedgerView";
+import { useAccounts } from "../features/accounts/accounts.queries";
 
-export default LedgerPage;
+export default function LedgerPage() {
+  const { accountId } = useParams();
+  const { data: accounts } = useAccounts();
+  const location = useLocation();
+
+  const account = accounts?.find((acc) => acc.id === accountId);
+  const accountName = account?.customerName || location.state?.accountName;
+
+  return (
+    <div className="py-6">
+      <LedgerView accountId={accountId} accountName={accountName} />
+    </div>
+  );
+}
