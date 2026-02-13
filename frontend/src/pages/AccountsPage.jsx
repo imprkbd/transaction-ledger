@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import toast from "react-hot-toast";
 import { useAccounts } from "../features/accounts/accounts.queries";
@@ -100,6 +100,7 @@ export default function AccountsPage() {
 
   if (isError) {
     const msg = getApiErrorMessage(error);
+    toast.error(msg);
     return (
       <div className="flex flex-col items-center justify-center rounded-xl border border-red-100 bg-red-50 p-12">
         <div className="rounded-full bg-red-100 p-4">
@@ -121,16 +122,6 @@ export default function AccountsPage() {
       </div>
     );
   }
-
-  useEffect(
-    () => {
-      if (isError) {
-        toast.error(getApiErrorMessage(error));
-      }
-    },
-    isError,
-    error,
-  );
 
   const totalAccounts = data?.length ?? 0;
   const activeAccounts =
