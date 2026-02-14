@@ -57,11 +57,18 @@ public sealed class LedgerService : ILedgerService
 
         var entries = await _entries.GetByAccountIdAsync(account.Id, ct);
 
+        var totalCredits = entries.Where(e => e.Type == EntryType.Credit).Sum(e => e.Amount.Value);
+
+        var totalDebits = entries.Where(e => e.Type == EntryType.Debit).Sum(e => e.Amount.Value);
+
         var balance = entries.Sum(e => e.SignedAmount());
 
         return new AccountLedgerDto(
             account.Id.Value,
             balance,
+            totalCredits,
+            totalDebits,
+
             entries.Select(e => new LedgerEntryDto(
                 e.Id,
                 e.AccountId.Value,
