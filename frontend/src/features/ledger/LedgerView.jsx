@@ -126,12 +126,8 @@ export default function LedgerView({ accountId, accountName }) {
 
   const balance = data?.balance ?? 0;
   const entries = data?.entries ?? [];
-  const totalCredits = entries
-    .filter((e) => e.type === 2)
-    .reduce((sum, e) => sum + e.amount, 0);
-  const totalDebits = entries
-    .filter((e) => e.type === 1)
-    .reduce((sum, e) => sum + e.amount, 0);
+  const totalCredits = data?.totalCredits ?? 0;
+  const totalDebits = data?.totalDebits ?? 0;
 
   return (
     <div className="space-y-6">
@@ -200,9 +196,6 @@ export default function LedgerView({ accountId, accountName }) {
         <div className="border-b border-slate-100 p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="rounded-lg bg-blue-50 p-2">
-                <PlusCircle className="h-5 w-5 text-blue-600" />
-              </div>
               <h2 className="font-semibold text-slate-900">Add New Entry</h2>
             </div>
             <button
