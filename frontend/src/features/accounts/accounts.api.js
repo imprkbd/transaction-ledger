@@ -1,7 +1,22 @@
 import { apiClient } from "../../lib/apiClient";
 
-export async function getAccounts() {
-  const res = await apiClient.get("/api/accounts");
+export async function getAccounts({ page, pageSize, status, search }) {
+  const params = new URLSearchParams({
+    page: page.toString(),
+    pageSize: pageSize.toString(),
+    status,
+  });
+
+  if (search) {
+    params.append("search", search);
+  }
+
+  const res = await apiClient.get(`/api/accounts?${params.toString()}`);
+  return res.data;
+}
+
+export async function getDashboardStats() {
+  const res = await apiClient.get("/api/dashboard/stats");
   return res.data;
 }
 

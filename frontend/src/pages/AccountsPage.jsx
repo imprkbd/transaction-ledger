@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import toast from "react-hot-toast";
-import { useAccounts } from "../features/accounts/accounts.queries";
+import {
+  useAccounts,
+  useDashboardStats,
+} from "../features/accounts/accounts.queries";
 import { getApiErrorMessage } from "../lib/apiError";
 import {
   Building2,
@@ -21,6 +24,8 @@ import {
   Download,
   ChevronLeft,
   ChevronRight,
+  CircleCheck,
+  Clock,
 } from "lucide-react";
 import CreateAccountModal from "../features/accounts/CreateAccountModal";
 import EditAccountModal from "../features/accounts/EditAccountModal";
@@ -34,15 +39,35 @@ export default function AccountsPage() {
   const [selectedAccount, setSelectedAccount] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [statusFilter, setStatusFilter] = useState("all");
   const itemsPerPage = 10;
 
-  const { data, isLoading, isError, error, refetch } = useAccounts();
+  // Fetch paginated accounts for table
+  const {
+    data: accountsData,
+    isLoading: isAccountsLoading,
+    isError: isAccountsError,
+    error: accountsError,
+    refetch: refetchAccounts,
+  } = useAccounts(currentPage, itemsPerPage, statusFilter, searchTerm);
+
+  // Fetch dashboard stats
+  const {
+    data: statsData,
+    isLoading: isStatsLoading,
+    isError: isStatsError,
+    error: statsError,
+    refetch: refetchStats,
+  } = useDashboardStats();
 
   useEffect(() => {
-    if (isError) {
-      toast.error(getApiErrorMessage(error));
+    if (isAccountsError) {
+      toast.error(getApiErrorMessage(accountsError));
     }
-  }, [isError, error]);
+    if (isStatsError) {
+      toast.error(getApiErrorMessage(statsError));
+    }
+  }, [isAccountsError, isStatsError, accountsError, statsError]);
 
   const handleEditClick = (account) => {
     setSelectedAccount(account);
@@ -61,22 +86,20 @@ export default function AccountsPage() {
     setSelectedAccount(null);
   };
 
-  // Filter accounts based on search
-  const filteredAccounts =
-    data?.filter(
-      (account) =>
-        account.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        account.phone?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        account.accountNumber?.toLowerCase().includes(searchTerm.toLowerCase()),
-    ) ?? [];
+  const handleSearch = (value) => {
+    setSearchTerm(value);
+    setCurrentPage(1); // Reset to first page on new search
+  };
 
-  // Pagination
-  const totalPages = Math.ceil(filteredAccounts.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedAccounts = filteredAccounts.slice(
-    startIndex,
-    startIndex + itemsPerPage,
-  );
+  const handleStatusFilter = (value) => {
+    setStatusFilter(value);
+    setCurrentPage(1); // Reset to first page on filter change
+  };
+
+  const handleRefresh = () => {
+    refetchAccounts();
+    refetchStats();
+  };
 
   function formatCurrency(amount) {
     return new Intl.NumberFormat("en-US", {
@@ -87,7 +110,31 @@ export default function AccountsPage() {
     }).format(amount || 0);
   }
 
-  if (isLoading) {
+  function formatNumber(number) {
+    return new Intl.NumberFormat("en-US").format(number || 0);
+  }
+
+  function getStatusBadge(account) {
+    // If account is deleted, show inactive
+    if (account.isDeleted) {
+      return (
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-50 px-3 py-1 text-xs font-medium text-slate-600 border border-slate-200">
+          <Clock className="h-3.5 w-3.5" />
+          Inactive
+        </span>
+      );
+    }
+
+    // Otherwise show active
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-green-50 px-3 py-1 text-xs font-medium text-green-700 border border-green-200">
+        <CircleCheck className="h-3.5 w-3.5" />
+        Active
+      </span>
+    );
+  }
+
+  if ((isAccountsLoading && !accountsData) || (isStatsLoading && !statsData)) {
     return (
       <div className="flex flex-col items-center justify-center rounded-xl border border-slate-200 bg-white p-12 shadow-sm">
         <div className="relative">
@@ -104,8 +151,8 @@ export default function AccountsPage() {
     );
   }
 
-  if (isError) {
-    const msg = getApiErrorMessage(error);
+  if (isAccountsError || isStatsError) {
+    const msg = getApiErrorMessage(accountsError || statsError);
     return (
       <div className="flex flex-col items-center justify-center rounded-xl border border-red-100 bg-red-50 p-12">
         <div className="rounded-full bg-red-100 p-4">
@@ -118,7 +165,7 @@ export default function AccountsPage() {
           {msg}
         </p>
         <button
-          onClick={() => refetch()}
+          onClick={handleRefresh}
           className="mt-6 flex items-center gap-2 rounded-lg bg-red-600 px-5 py-2.5 text-sm font-medium text-white transition-all hover:bg-red-700 hover:shadow-lg"
         >
           <RefreshCw className="h-4 w-4" />
@@ -128,12 +175,14 @@ export default function AccountsPage() {
     );
   }
 
-  const totalAccounts = data?.length ?? 0;
-  const activeAccounts =
-    data?.filter((a) => a.status === "active" || !a.status).length ?? 0;
-  const totalBalance =
-    data?.reduce((sum, acc) => sum + (acc.balance || 0), 0) ?? 0;
-  const avgBalance = totalAccounts > 0 ? totalBalance / totalAccounts : 0;
+  // Get stats data
+  const totalAccounts = statsData?.totalAccounts ?? 0;
+  const activeAccounts = statsData?.activeAccounts ?? 0;
+
+  // Get paginated accounts for display
+  const accounts = accountsData?.items ?? [];
+  const totalFilteredAccounts = accountsData?.totalCount ?? 0;
+  const totalPages = accountsData?.totalPages ?? 1;
 
   return (
     <>
@@ -155,9 +204,9 @@ export default function AccountsPage() {
           </div>
 
           <div className="flex items-center gap-3">
-            <Tooltip content="Refresh data" position="bottom">
+            {/* <Tooltip content="Refresh data" position="bottom">
               <button
-                onClick={() => refetch()}
+                onClick={handleRefresh}
                 className="rounded-lg border border-slate-200 bg-white p-2.5 text-slate-600 transition-all hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600"
               >
                 <RefreshCw className="h-5 w-5" />
@@ -168,7 +217,7 @@ export default function AccountsPage() {
               <button className="rounded-lg border border-slate-200 bg-white p-2.5 text-slate-600 transition-all hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600">
                 <Download className="h-5 w-5" />
               </button>
-            </Tooltip>
+            </Tooltip> */}
 
             <button
               onClick={() => setIsCreateModalOpen(true)}
@@ -180,8 +229,8 @@ export default function AccountsPage() {
           </div>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {/* Stats Cards - Using dashboard stats API */}
+        <div className="grid gap-4 sm:grid-cols-2">
           <div className="group relative overflow-hidden rounded-xl border border-slate-200 bg-white p-5 transition-all hover:border-blue-200 hover:shadow-lg">
             <div className="absolute right-0 top-0 h-24 w-24 translate-x-8 -translate-y-8 rounded-full bg-blue-50 opacity-0 transition-all group-hover:opacity-100"></div>
             <div className="relative flex items-start justify-between">
@@ -190,7 +239,7 @@ export default function AccountsPage() {
                   Total Accounts
                 </p>
                 <p className="mt-2 text-2xl font-bold text-slate-900">
-                  {totalAccounts.toLocaleString()}
+                  {formatNumber(totalAccounts)}
                 </p>
                 <p className="mt-1 text-xs text-slate-500">
                   All registered accounts
@@ -210,11 +259,13 @@ export default function AccountsPage() {
                   Active Accounts
                 </p>
                 <p className="mt-2 text-2xl font-bold text-slate-900">
-                  {activeAccounts.toLocaleString()}
+                  {formatNumber(activeAccounts)}
                 </p>
                 <p className="mt-1 text-xs text-slate-500">
-                  {((activeAccounts / totalAccounts) * 100 || 0).toFixed(0)}% of
-                  total
+                  {totalAccounts > 0
+                    ? ((activeAccounts / totalAccounts) * 100).toFixed(0)
+                    : 0}
+                  % of total
                 </p>
               </div>
               <div className="rounded-lg bg-green-50 p-2.5 text-green-600 transition-all group-hover:bg-green-100">
@@ -233,16 +284,13 @@ export default function AccountsPage() {
             <input
               type="text"
               value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value);
-                setCurrentPage(1);
-              }}
+              onChange={(e) => handleSearch(e.target.value)}
               placeholder="Search by customer, phone, or account number..."
               className="w-full rounded-lg border border-slate-200 py-2.5 pl-10 pr-4 text-sm outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
             />
             {searchTerm && (
               <button
-                onClick={() => setSearchTerm("")}
+                onClick={() => handleSearch("")}
                 className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600"
               >
                 <span className="text-lg">×</span>
@@ -252,11 +300,15 @@ export default function AccountsPage() {
 
           <div className="flex items-center gap-2 text-sm text-slate-600">
             <Filter className="h-4 w-4" />
-            <span>Filter:</span>
-            <select className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-blue-500">
-              <option>All Accounts</option>
-              <option>Active Only</option>
-              <option>Inactive</option>
+            <span>Status:</span>
+            <select
+              value={statusFilter}
+              onChange={(e) => handleStatusFilter(e.target.value)}
+              className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-blue-500"
+            >
+              <option value="all">All Accounts</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
             </select>
           </div>
         </div>
@@ -292,12 +344,15 @@ export default function AccountsPage() {
                     </div>
                   </th>
                   <th className="px-5 py-4 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
+                    Status
+                  </th>
+                  <th className="px-5 py-4 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
                     Actions
                   </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {paginatedAccounts.map((account) => (
+                {accounts.map((account) => (
                   <tr
                     key={account.id}
                     className="group transition-all hover:bg-slate-50/80"
@@ -346,6 +401,9 @@ export default function AccountsPage() {
                       </span>
                     </td>
                     <td className="whitespace-nowrap px-5 py-4">
+                      {getStatusBadge(account)}
+                    </td>
+                    <td className="whitespace-nowrap px-5 py-4">
                       <div className="flex items-center gap-1.5">
                         <Tooltip content="View Ledger" position="top">
                           <Link
@@ -383,12 +441,12 @@ export default function AccountsPage() {
           </div>
 
           {/* Empty State */}
-          {filteredAccounts.length === 0 && (
+          {accounts.length === 0 && (
             <div className="flex flex-col items-center justify-center py-16 px-4">
               <div className="relative">
                 <div className="absolute inset-0 animate-pulse rounded-full bg-slate-200"></div>
                 <div className="relative rounded-full bg-slate-100 p-4">
-                  {searchTerm ? (
+                  {searchTerm || statusFilter !== "all" ? (
                     <Search className="h-8 w-8 text-slate-400" />
                   ) : (
                     <Building2 className="h-8 w-8 text-slate-400" />
@@ -396,19 +454,26 @@ export default function AccountsPage() {
                 </div>
               </div>
 
-              {searchTerm ? (
+              {searchTerm || statusFilter !== "all" ? (
                 <>
                   <h3 className="mt-4 text-lg font-medium text-slate-900">
                     No accounts found
                   </h3>
-                  <p className="mt-2 text-sm text-slate-500">
-                    No results match "{searchTerm}". Try adjusting your search.
+                  <p className="mt-2 text-sm text-slate-500 text-center">
+                    {searchTerm && statusFilter !== "all"
+                      ? `No results match "${searchTerm}" with ${statusFilter} status`
+                      : searchTerm
+                        ? `No results match "${searchTerm}"`
+                        : `No accounts with ${statusFilter} status`}
                   </p>
                   <button
-                    onClick={() => setSearchTerm("")}
+                    onClick={() => {
+                      setSearchTerm("");
+                      setStatusFilter("all");
+                    }}
                     className="mt-6 flex items-center gap-2 rounded-lg bg-slate-100 px-5 py-2.5 text-sm font-medium text-slate-600 transition-all hover:bg-slate-200"
                   >
-                    Clear search
+                    Clear filters
                   </button>
                 </>
               ) : (
@@ -432,15 +497,18 @@ export default function AccountsPage() {
           )}
 
           {/* Pagination */}
-          {filteredAccounts.length > 0 && (
+          {totalPages > 1 && (
             <div className="flex items-center justify-between border-t border-slate-200 bg-slate-50/50 px-5 py-3">
               <div className="text-sm text-slate-600">
-                Showing <span className="font-medium">{startIndex + 1}</span> to{" "}
+                Showing{" "}
                 <span className="font-medium">
-                  {Math.min(startIndex + itemsPerPage, filteredAccounts.length)}
+                  {(currentPage - 1) * itemsPerPage + 1}
                 </span>{" "}
-                of{" "}
-                <span className="font-medium">{filteredAccounts.length}</span>{" "}
+                to{" "}
+                <span className="font-medium">
+                  {Math.min(currentPage * itemsPerPage, totalFilteredAccounts)}
+                </span>{" "}
+                of <span className="font-medium">{totalFilteredAccounts}</span>{" "}
                 accounts
               </div>
 

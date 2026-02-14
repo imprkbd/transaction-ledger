@@ -3,40 +3,74 @@ import {
   createAccount,
   deleteAccount,
   getAccounts,
+  getDashboardStats,
   updateAccount,
 } from "./accounts.api";
 
 export const accountsKeys = {
   all: ["accounts"],
+  lists: () => [...accountsKeys.all, "list"],
+  list: (filters) => [...accountsKeys.lists(), filters],
+  stats: ["accounts", "stats"],
+  details: () => [...accountsKeys.all, "detail"],
+  detail: (id) => [...accountsKeys.details(), id],
 };
 
-export function useAccounts() {
+export function useAccounts(
+  page = 1,
+  pageSize = 10,
+  status = "all",
+  search = "",
+) {
   return useQuery({
-    queryKey: accountsKeys.all,
-    queryFn: getAccounts,
+    queryKey: [
+      ...accountsKeys.list({ page, pageSize, status, search }),
+      "paginated",
+    ],
+    queryFn: () => getAccounts({ page, pageSize, status, search }),
+    keepPreviousData: true,
+  });
+}
+
+export function useDashboardStats() {
+  return useQuery({
+    queryKey: accountsKeys.stats,
+    queryFn: getDashboardStats,
   });
 }
 
 export function useCreateAccount() {
-  const qc = useQueryClient();
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: createAccount,
-    onSuccess: () => qc.invalidateQueries({ queryKey: accountsKeys.all }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: accountsKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: accountsKeys.stats });
+    },
   });
 }
 
 export function useUpdateAccount() {
-  const qc = useQueryClient();
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ id, payload }) => updateAccount(id, payload),
-    onSuccess: () => qc.invalidateQueries({ queryKey: accountsKeys.all }),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: accountsKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: accountsKeys.stats });
+      queryClient.invalidateQueries({
+        queryKey: accountsKeys.detail(variables.id),
+      });
+    },
   });
 }
 
 export function useDeleteAccount() {
-  const qc = useQueryClient();
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: deleteAccount,
-    onSuccess: () => qc.invalidateQueries({ queryKey: accountsKeys.all }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: accountsKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: accountsKeys.stats });
+    },
   });
 }

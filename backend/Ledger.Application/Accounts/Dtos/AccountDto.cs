@@ -6,5 +6,7 @@ public sealed record AccountDto(
     string? Phone,
     string? AccountNumber,
     decimal Balance,
-    DateTime CreatedAtUtc
+    bool IsDeleted,
+    DateTime CreatedAtUtc,
+    DateTime? DeletedAtUtc
 );

@@ -7,7 +7,7 @@ export default function LedgerPage() {
   const { data: accounts } = useAccounts();
   const location = useLocation();
 
-  const account = accounts?.find((acc) => acc.id === accountId);
+  const account = accounts?.items?.find((acc) => acc.id === accountId);
   const accountName = account?.customerName || location.state?.accountName;
 
   if (!accountId) {

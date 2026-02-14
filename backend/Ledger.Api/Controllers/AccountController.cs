@@ -1,5 +1,6 @@
 using Ledger.Application.Accounts;
 using Ledger.Application.Accounts.Dtos;
+using Ledger.Application.Common.Paging;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Ledger.Api.Controllers;
@@ -15,19 +16,39 @@ public sealed class AccountsController : ControllerBase
         _service = service;
     }
 
+    // [HttpPost]
+    // public async Task<ActionResult<AccountDto>> Create(
+    //     CreateAccountRequest request,
+    //     CancellationToken ct)
+    // {
+    //     var result = await _service.CreateAsync(request, ct);
+    //     return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
+    // }
+
     [HttpPost]
     public async Task<ActionResult<AccountDto>> Create(
-        CreateAccountRequest request,
-        CancellationToken ct)
+    CreateAccountRequest request,
+    CancellationToken ct)
     {
         var result = await _service.CreateAsync(request, ct);
-        return CreatedAtAction(nameof(GetAll), new { id = result.Id }, result);
+        return Ok(result);
     }
 
+    // [HttpGet]
+    // public async Task<ActionResult<List<AccountDto>>> GetAll(CancellationToken ct)
+    // {
+    //     var result = await _service.GetAllAsync(ct);
+    //     return Ok(result);
+    // }
+
     [HttpGet]
-    public async Task<ActionResult<List<AccountDto>>> GetAll(CancellationToken ct)
+    public async Task<ActionResult<PagedResult<AccountDto>>> GetPaged(
+    [FromQuery] int page = 1,
+    [FromQuery] int pageSize = 10,
+    [FromQuery] string status = "active",
+    CancellationToken ct = default)
     {
-        var result = await _service.GetAllAsync(ct);
+        var result = await _service.GetPagedAsync(new AccountsQuery(page, pageSize, status), ct);
         return Ok(result);
     }
 

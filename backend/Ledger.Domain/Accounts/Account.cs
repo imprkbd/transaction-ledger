@@ -9,7 +9,9 @@ public sealed class Account
     public string CustomerName { get; private set; } = null!;
     public string? Phone { get; private set; }
     public string? AccountNumber { get; private set; }
+    public bool IsDeleted { get; private set; }
     public DateTime CreatedAtUtc { get; private set; }
+    public DateTime? DeletedAtUtc { get; private set; }
 
     private readonly List<LedgerEntry> _entries = new();
     public IReadOnlyCollection<LedgerEntry> Entries => _entries.AsReadOnly();
@@ -38,15 +40,18 @@ public sealed class Account
 
     public LedgerEntry AddEntry(EntryType type, decimal amount, string? description)
     {
+        if (IsDeleted)
+            throw new DomainException("Account is inactive. Restore it to add transactions.");
+
         // validate amount using Money
         var money = Money.From(amount);
 
         // enforce "no overdraft" rule
-        if(type == EntryType.Debit)
+        if (type == EntryType.Debit)
         {
             var currentBalance = GetBalance(); // sum of existing entries
 
-            if(currentBalance < money.Value)
+            if (currentBalance < money.Value)
             {
                 throw new DomainException("Insufficient funds: debit amount exceeds current balance.");
             }
@@ -55,6 +60,14 @@ public sealed class Account
         var entry = LedgerEntry.Create(Id, type, money.Value, description);
         _entries.Add(entry);
         return entry;
+    }
+
+    public void SoftDelete()
+    {
+        if (IsDeleted) return;
+
+        IsDeleted = true;
+        DeletedAtUtc = DateTime.UtcNow;
     }
 
     public decimal GetBalance()
