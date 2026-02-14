@@ -63,7 +63,7 @@ public sealed class AccountService : IAccountService
 
     public async Task<PagedResult<AccountDto>> GetPagedAsync(AccountsQuery query, CancellationToken ct)
     {
-        var paged = await _accounts.GetPagedAsync(query.Page, query.PageSize, query.Status, ct);
+        var paged = await _accounts.GetPagedAsync(query.Page, query.PageSize, query.Status, query.Search, ct);
 
         var items = new List<AccountDto>(paged.Items.Count);
 

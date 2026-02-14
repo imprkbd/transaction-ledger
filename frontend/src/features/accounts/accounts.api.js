@@ -5,6 +5,7 @@ export async function getAccounts({ page, pageSize, status, search }) {
     page: page.toString(),
     pageSize: pageSize.toString(),
     status,
+    search,
   });
 
   if (search) {

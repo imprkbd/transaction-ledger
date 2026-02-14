@@ -46,9 +46,10 @@ public sealed class AccountsController : ControllerBase
     [FromQuery] int page = 1,
     [FromQuery] int pageSize = 10,
     [FromQuery] string status = "active",
+    [FromQuery] string? search = null,
     CancellationToken ct = default)
     {
-        var result = await _service.GetPagedAsync(new AccountsQuery(page, pageSize, status), ct);
+        var result = await _service.GetPagedAsync(new AccountsQuery(page, pageSize, status, search), ct);
         return Ok(result);
     }
 

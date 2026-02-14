@@ -11,6 +11,7 @@ public interface IAccountRepository
         int page,
         int pageSize,
         string status,
+        string? search,
         CancellationToken ct
     );
     Task<List<Account>> GetAllAsync(CancellationToken ct);
