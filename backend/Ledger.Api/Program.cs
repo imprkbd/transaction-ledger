@@ -31,21 +31,25 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
+// DB migrations
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    db.Database.Migrate();
+}
+
 // Dev-time migrations
 if (app.Environment.IsDevelopment())
 {
-    using var scope = app.Services.CreateScope();
-    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    db.Database.Migrate();
-
     app.UseSwagger();
     app.UseSwaggerUI();
+    
+    app.UseHttpsRedirection();
 }
 
 // Middleware pipeline
 app.UseMiddleware<ErrorHandlingMiddleware>();
 
-app.UseHttpsRedirection();
 
 app.UseCors("Frontend");
 
