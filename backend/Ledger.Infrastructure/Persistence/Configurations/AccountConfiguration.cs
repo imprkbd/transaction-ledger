@@ -29,6 +29,12 @@ public sealed class AccountConfiguration : IEntityTypeConfiguration<Account>
         builder.Property(a => a.AccountNumber)
             .HasMaxLength(40);
 
+        builder.Property(a => a.IsDeleted)
+    .IsRequired();
+
+        builder.Property(a => a.DeletedAtUtc);
+
+
         builder.Property(a => a.CreatedAtUtc)
             .IsRequired();
 

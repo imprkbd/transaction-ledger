@@ -1,6 +1,7 @@
+using Microsoft.Extensions.DependencyInjection;
 using Ledger.Application.Accounts;
 using Ledger.Application.Ledger;
-using Microsoft.Extensions.DependencyInjection;
+using Ledger.Application.Dashboard;
 
 namespace Ledger.Application;
 
@@ -10,6 +11,8 @@ public static class DependencyInjection
     {
         services.AddScoped<IAccountService, AccountService>();
         services.AddScoped<ILedgerService, LedgerService>();
+        services.AddScoped<IDashboardService, DashboardService>();
         return services;
+
     }
 }
